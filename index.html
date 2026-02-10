@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOVACORE - Live Smart Trade</title>
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<style>
+body { margin:0; font-family:Inter, sans-serif; background:#0E1117; color:#E6EDF3; }
+header { padding:15px; text-align:center; font-size:24px; font-weight:bold; }
+.container { padding:15px; }
+input, button { width:100%; padding:10px; margin:5px 0; border:none; border-radius:6px; }
+input { background:#161B22; color:#E6EDF3; }
+button { background:#3B82F6; color:#E6EDF3; font-weight:bold; cursor:pointer; }
+button.green { background:#00C896; }
+button.red { background:#FF4D4F; }
+button.gray { background:#8B949E; }
+nav { position:fixed; bottom:0; width:100%; background:#161B22; display:flex; justify-content:space-around; padding:10px 0; }
+nav button { background:none; border:none; color:#8B949E; font-size:16px; }
+nav button.active { color:#3B82F6; }
+.section { display:none; padding-bottom:60px; }
+.section.active { display:block; }
+.card { background:#161B22; padding:15px; border-radius:12px; margin-bottom:15px; }
+table { width:100%; border-collapse:collapse; }
+td, th { padding:6px; text-align:left; }
+.notification { background:#3B82F6; padding:10px; border-radius:8px; margin:5px 0; display:none; }
+.up { color:#00FF7F; } 
+.down { color:#FF4D4F; } 
+@keyframes flashGreen {0%{background-color:#00FF7F;}100%{background-color:#161B22;}}
+@keyframes flashRed {0%{background-color:#FF4D4F;}100%{background-color:#161B22;}}
+.flash-up { animation: flashGreen 1s ease; }
+.flash-down { animation: flashRed 1s ease; }
+</style>
+</head>
+<body>
+<header>NOVACORE</header>
+
+<!-- REGISTER & LOGIN -->
+<div id="authSection" class="container">
+  <div id="registerDiv" class="card">
+    <h4>Register</h4>
+    <input type="text" id="regName" placeholder="Your Name">
+    <input type="text" id="regMobile" placeholder="Mobile Number">
+    <input type="text" id="regAadhar" placeholder="Aadhar Number">
+    <input type="text" id="regPan" placeholder="PAN Number">
+    <input type="text" id="regUpi" placeholder="UPI ID">
+    <input type="password" id="regPassword" placeholder="Password">
+    <button onclick="registerUser()">Register</button>
+    <p id="regMsg"></p>
+  </div>
+  <div id="loginDiv" class="card">
+    <h4>Login</h4>
+    <input type="text" id="loginMobile" placeholder="Mobile Number">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <button onclick="loginUser()">Login</button>
+    <p id="loginMsg"></p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="appSection" class="container" style="display:none;">
+  <div id="notificationBanner" class="notification"></div>
+
+  <!-- WATCHLIST -->
+  <div id="homeScreen" class="section active">
+    <div class="card">
+      <h4>Watchlist</h4>
+      <input type="text" id="newSymbol" placeholder="Add Symbol e.g. AAPL">
+      <button class="green" onclick="addToWatchlist()">Add</button>
+      <table id="watchlistTbl"></table>
+    </div>
+  </div>
+
+  <!-- 5-YEAR CHART -->
+  <div id="chartScreen" class="section">
+    <input type="text" id="searchSymbol" placeholder="Search Symbol e.g. AAPL">
+    <button class="green" onclick="show5YearChart()">Show 5-Year Chart</button>
+    <div id="chart" style="height:400px; margin-top:20px;"></div>
+  </div>
+
+  <!-- SMART TRADE -->
+  <div id="tradeScreen" class="section">
+    <div class="card">
+      <h4>Smart Trade</h4>
+      <input type="text" id="tradeSymbol" placeholder="Symbol e.g. AAPL">
+      <input type="number" id="tradeQty" placeholder="Quantity">
+      <input type="number" id="tradeSL" placeholder="Stop Loss Price (SL)">
+      <input type="number" id="tradeTP" placeholder="Take Profit Price (TP)">
+      <button class="green" onclick="smartTrade('BUY')">Buy</button>
+      <button class="red" onclick="smartTrade('SELL')">Sell</button>
+    </div>
+    <div class="card">
+      <h4>Your Holdings</h4>
+      <table id="holdingsTbl"></table>
+      <h4>Order History</h4>
+      <table id="orderHistoryTbl"></table>
+    </div>
+  </div>
+</div>
+
+<nav>
+  <button onclick="showTab('homeScreen',this)" class="active">Home</button>
+  <button onclick="showTab('chartScreen',this)">5-Year Chart</button>
+  <button onclick="showTab('tradeScreen',this)">Trade</button>
+  <button onclick="logout()">Logout</button>
+</nav>
+
+<script>
+const USER_KEY='zt_user', WATCHLIST_KEY='zt_watchlist', TRADES_KEY='zt_trades';
+const ALPHA_KEY='YOUR_ALPHA_VANTAGE_KEY', REFRESH_INTERVAL=60000, API_DELAY=15000;
+
+// ===== REGISTER =====
+function registerUser(){
+  const name=regName.value, mobile=regMobile.value, aadhar=regAadhar.value, pan=regPan.value, upi=regUpi.value, pwd=regPassword.value;
+  if(!name||!mobile||!pwd){ regMsg.innerText="Fill required fields"; return; }
+  localStorage.setItem(USER_KEY,JSON.stringify({name,mobile,aadhar,pan,upi,password:pwd}));
+  regMsg.innerText="Registered! Please login below.";
+  regName.value=""; regMobile.value=""; regPassword.value=""; regAadhar.value=""; regPan.value=""; regUpi.value="";
+}
+
+// ===== LOGIN =====
+function loginUser(){
+  const mobile=loginMobile.value, pwd=loginPassword.value;
+  const user=JSON.parse(localStorage.getItem(USER_KEY));
+  if(!user){ loginMsg.innerText="No user registered"; return; }
+  if(user.mobile===mobile && user.password===pwd){
+    authSection.style.display='none'; appSection.style.display='block';
+    startWatchlistAutoUpdate(); loadHoldings(); setInterval(runSLTP, REFRESH_INTERVAL);
+  } else loginMsg.innerText="Invalid login";
+}
+
+// ===== TAB SWITCH =====
+function showTab(id,btn){ document.querySelectorAll('.section').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active')); if(btn) btn.classList.add('active'); }
+
+// ===== WATCHLIST =====
+let watchlistQueue=[], isUpdating=false;
+function addToWatchlist(){ const sym=newSymbol.value.toUpperCase(); if(!sym) return alert("Enter Symbol"); let wl=JSON.parse(localStorage.getItem(WATCHLIST_KEY))||[]; if(!wl.includes(sym)) wl.push(sym); localStorage.setItem(WATCHLIST_KEY,JSON.stringify(wl)); enqueueSymbol(sym);}
+function removeFromWatchlist(sym){ let wl=JSON.parse(localStorage.getItem(WATCHLIST_KEY))||[]; wl=wl.filter(s=>s!==sym); localStorage.setItem(WATCHLIST_KEY,JSON.stringify(wl)); const row=document.querySelector(`tr[data-sym="${sym}"]`); if(row) row.remove(); }
+
+async function fetchPrice(symbol){
+  try{
+    const url=`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=compact&apikey=${ALPHA_KEY}`;
+    const res=await fetch(url); const data=await res.json();
+    if(data["Time Series (Daily)"]){
+      const keys=Object.keys(data["Time Series (Daily)"]);
+      const lastClose=parseFloat(data["Time Series (Daily)"][keys[0]]["4. close"]);
+      const prevClose=parseFloat(data["Time Series (Daily)"][keys[1]]["4. close"]);
+      return {lastClose, prevClose};
+    } return {lastClose:0, prevClose:0};
+  } catch(e){ console.error("API fetch error",symbol,e); return {lastClose:0, prevClose:0}; }
+}
+
+function startWatchlistAutoUpdate(){ watchlistQueue=JSON.parse(localStorage.getItem(WATCHLIST_KEY))||[]; if(!isUpdating) updateNextSymbol(); setInterval(()=>{ watchlistQueue=JSON.parse(localStorage.getItem(WATCHLIST_KEY))||[]; if(!isUpdating) updateNextSymbol(); }, REFRESH_INTERVAL); }
+function enqueueSymbol(sym){ if(!watchlistQueue.includes(sym)) watchlistQueue.push(sym); if(!isUpdating) updateNextSymbol(); }
+async function updateNextSymbol(){ if(watchlistQueue.length===0){ isUpdating=false; return; } isUpdating=true; const sym=watchlistQueue.shift(); const {lastClose,prevClose}=await fetchPrice(sym); renderWatchlistRow(sym,lastClose,prevClose); setTimeout(updateNextSymbol, API_DELAY); }
+
+function renderWatchlistRow(symbol,lastClose,prevClose){
+  const table=watchlistTbl; let row=table.querySelector(`tr[data-sym="${symbol}"]`);
+  const changePercent=((lastClose-prevClose)/prevClose)*100; const cls=changePercent>=0?"up":"down";
+  if(!row){ table.innerHTML+=`<tr data-sym="${symbol}"><td>${symbol}</td><td class="${cls}">$${lastClose.toFixed(2)}</td><td class="${cls}">${changePercent.toFixed(2)}%</td><td><button class="gray" onclick="removeFromWatchlist('${symbol}')">Remove</button></td></tr>`; row=table.querySelector(`tr[data-sym="${symbol}"]`);} else { const priceCell=row.cells[1]; const changeCell=row.cells[2]; if(parseFloat(priceCell.innerText.replace('$',''))!==lastClose){ priceCell.classList.remove('flash-up','flash-down'); changeCell.classList.remove('flash-up','flash-down'); const flashCls=cls==='up'?'flash-up':'flash-down'; priceCell.classList.add(flashCls); changeCell.classList.add(flashCls);} priceCell.innerText=`$${lastClose.toFixed(2)}`; priceCell.className=cls; changeCell.innerText=`${changePercent.toFixed(2)}%`; changeCell.className=cls;}
+  if(table.rows.length===0||table.rows[0].cells.length<4) table.innerHTML=`<tr><th>Symbol</th><th>Price</th><th>% Change</th><th>Action</th></tr>`+table.innerHTML;
+}
+
+// ===== 5-YEAR CHART =====
+async function show5YearChart(){
+  const sym=searchSymbol.value.toUpperCase(); if(!sym) return alert("Enter Symbol");
+  const chartEl=document.getElementById("chart"); chartEl.innerHTML="";
+  const chart=LightweightCharts.createChart(chartEl,{layout:{background:'#0E1117',textColor:'#E6EDF3'}});
+  const series=chart.addCandlestickSeries();
+  try{
+    const url=`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${sym}&outputsize=full&apikey=${ALPHA_KEY}`;
+    const res=await fetch(url); const data=await res.json();
+    const ts=data["Time Series (Daily)"]; if(!ts){ alert("Invalid symbol or API limit reached"); return; }
+    const chartData=Object.keys(ts).map(d=>{ const day=ts[d]; return {time:Math.floor(new Date(d).getTime()/1000),open:parseFloat(day["1. open"]),high:parseFloat(day["2. high"]),low:parseFloat(day["3. low"]),close:parseFloat(day["4. close"])}; }).reverse();
+    series.setData(chartData);
+  }catch(e){ console.error("Chart fetch error",e); alert("Failed to fetch chart"); }
+}
+
+// ===== SMART TRADE =====
+function smartTrade(type){
+  const sym=tradeSymbol.value.toUpperCase(); const qty=parseInt(tradeQty.value); const sl=parseFloat(tradeSL.value); const tp=parseFloat(tradeTP.value);
+  if(!sym||!qty) return alert("Enter symbol & qty"); 
+  let trades=JSON.parse(localStorage.getItem(TRADES_KEY))||[];
+  trades.push({symbol:sym,type,qty,sl,tp,open:true,time:new Date().toLocaleString()}); 
+  localStorage.setItem(TRADES_KEY,JSON.stringify(trades));
+  showNotification(`${type} placed for ${sym}`);
+  loadHoldings();
+}
+async function runSLTP(){
+  let trades=JSON.parse(localStorage.getItem(TRADES_KEY))||[];
+  for(let t of trades){
+    if(t.open){
+      const {lastClose}=await fetchPrice(t.symbol);
+      if(t.sl && ((t.type==='BUY' && lastClose<=t.sl)||(t.type==='SELL' && lastClose>=t.sl))){ t.open=false; t.closedPrice=t.sl; showNotification(`SL hit for ${t.symbol}`); }
+      if(t.tp && ((t.type==='BUY' && lastClose>=t.tp)||(t.type==='SELL' && lastClose<=t.tp))){ t.open=false; t.closedPrice=t.tp; showNotification(`TP hit for ${t.symbol}`); }
+    }
+  }
+  localStorage.setItem(TRADES_KEY,JSON.stringify(trades));
+  loadHoldings();
+}
+
+function loadHoldings(){
+  const trades=JSON.parse(localStorage.getItem(TRADES_KEY))||[]; const holdings={}; let total=0;
+  for(let t of trades){
+    const {lastClose}=t.open?{lastClose:0}: {lastClose:t.closedPrice}; 
+    if(!holdings[t.symbol]) holdings[t.symbol]={qty:0,value:0};
+    if(t.open){ holdings[t.symbol].qty += t.type==='BUY'?t.qty:-t.qty; holdings[t.symbol].value += t.qty*lastClose; }
+    total += holdings[t.symbol].value;
+  }
+  holdingsTbl.innerHTML=`<tr><th>Symbol</th><th>Qty</th><th>Value</th></tr>`;
+  for(let s in holdings) holdingsTbl.innerHTML+=`<tr><td>${s}</td><td>${holdings[s].qty}</td><td>₹${holdings[s].value.toFixed(2)}</td></tr>`;
+  orderHistoryTbl.innerHTML=`<tr><th>Time</th><th>Symbol</th><th>Type</th><th>Qty</th><th>SL</th><th>TP</th><th>Status</th></tr>`;
+  trades.forEach(t=>{ const status=t.open?"OPEN":"CLOSED"; orderHistoryTbl.innerHTML+=`<tr><td>${t.time}</td><td>${t.symbol}</td><td>${t.type}</td><td>${t.qty}</td><td>${t.sl||'-'}</td><td>${t.tp||'-'}</td><td>${status}</td></tr>`; });
+}
+
+// ===== NOTIFICATION =====
+function showNotification(msg){ const n=document.getElementById('notificationBanner'); n.innerText=msg; n.style.display='block'; setTimeout(()=>{n.style.display='none';},3000); }
+
+// ===== LOGOUT =====
+function logout(){ location.reload(); }
+</script>
+</body>
+</html>
