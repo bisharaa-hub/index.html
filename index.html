@@ -71,19 +71,25 @@ td,th{padding:6px;text-align:left}
 <button onclick="tab('home')">Home</button>
 <button onclick="tab('chart')">Chart</button>
 <button onclick="tab('trade')">Trade</button>
-<button onclick="tab('movers')">Movers</button>
 <button onclick="logout()">Logout</button>
 </nav>
 
 <!-- AUTH -->
 <div id="auth" class="section active">
+
 <div class="card">
 <h3>Register</h3>
 <input id="regPhone" placeholder="Phone">
+<input id="regAadhar" placeholder="Aadhar No">
+<input id="regPan" placeholder="PAN No">
+<input id="regUpi" placeholder="UPI ID">
 <input id="regPass" type="password" placeholder="Password">
+
 <button onclick="sendOTP()">Send OTP</button>
+
 <input id="regOTP" placeholder="Enter OTP" style="display:none">
 <button onclick="verifyOTP()" id="verifyBtn" style="display:none">Verify</button>
+
 <p id="regMsg"></p>
 </div>
 
@@ -93,10 +99,20 @@ td,th{padding:6px;text-align:left}
 <input id="loginPass" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
 </div>
+
 </div>
 
 <!-- HOME -->
 <div id="home" class="section">
+
+<div class="card">
+<h3>User Details</h3>
+<p>Phone: <span id="userPhone"></span></p>
+<p>Aadhar: <span id="userAadhar"></span></p>
+<p>PAN: <span id="userPan"></span></p>
+<p>UPI: <span id="userUpi"></span></p>
+</div>
+
 <div class="card">
 <h3>Wallet</h3>
 <h2 id="balance">₹100000</h2>
@@ -104,10 +120,6 @@ td,th{padding:6px;text-align:left}
 <button class="green" onclick="deposit()">Deposit</button>
 </div>
 
-<div class="card">
-<h3>Watchlist</h3>
-<table id="watchTbl"></table>
-</div>
 </div>
 
 <!-- CHART -->
@@ -117,6 +129,7 @@ td,th{padding:6px;text-align:left}
 
 <!-- TRADE -->
 <div id="trade" class="section">
+
 <div class="card">
 <h3>Trade</h3>
 <input id="tradeSym" placeholder="Stock Name">
@@ -129,9 +142,174 @@ td,th{padding:6px;text-align:left}
 <h3>Orders</h3>
 <table id="ordersTbl"></table>
 </div>
+
 </div>
 
-<div id="movers" class="section">
-<div class="card">
-<h3>Market Movers</h3>
-<ul>
+<script>
+
+let prices={"RELIANCE":2450,"TCS":3800,"INFY":1600};
+let wallet=100000;
+let orders=[];
+let historyData={};
+let chart,series;
+
+/* NAV */
+function tab(id){
+document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+}
+
+/* OTP DEMO */
+function sendOTP(){
+
+let otp=Math.floor(100000+Math.random()*900000);
+localStorage.setItem("otp",otp);
+
+/* Demo OTP display */
+regMsg.innerText="Demo OTP: "+otp;
+
+regOTP.style.display="block";
+verifyBtn.style.display="block";
+}
+
+function verifyOTP(){
+
+if(regOTP.value==localStorage.getItem("otp")){
+
+localStorage.setItem("user",JSON.stringify({
+phone:regPhone.value,
+aadhar:regAadhar.value,
+pan:regPan.value,
+upi:regUpi.value,
+pass:regPass.value
+}));
+
+regMsg.innerText="Registration Successful";
+}
+else{
+regMsg.innerText="Invalid OTP";
+}
+}
+
+/* LOGIN */
+function login(){
+
+let u=JSON.parse(localStorage.getItem("user"));
+
+if(u && u.phone==loginPhone.value && u.pass==loginPass.value){
+
+auth.style.display="none";
+menu.style.display="flex";
+
+userPhone.innerText=u.phone;
+userAadhar.innerText=u.aadhar;
+userPan.innerText=u.pan;
+userUpi.innerText=u.upi;
+
+initHistory();
+loadChart("RELIANCE");
+tab("home");
+}
+}
+
+/* WALLET */
+function deposit(){
+wallet+=parseFloat(depositAmt.value||0);
+balance.innerText="₹"+wallet.toFixed(2);
+}
+
+/* HISTORY */
+function generateHistory(stock,basePrice){
+
+let data=[];
+let base=basePrice;
+
+for(let i=200;i>=0;i--){
+
+let o=base+(Math.random()*10-5);
+let c=o+(Math.random()*8-4);
+let h=Math.max(o,c)+5;
+let l=Math.min(o,c)-5;
+base=c;
+
+data.push({
+time:Math.floor(Date.now()/1000)-i*86400,
+open:o,high:h,low:l,close:c
+});
+}
+historyData[stock]=data;
+}
+
+function initHistory(){
+for(let s in prices){
+generateHistory(s,prices[s]);
+}
+}
+
+/* CHART */
+function loadChart(stock){
+
+let el=document.getElementById("chartBox");
+el.innerHTML="";
+
+chart=LightweightCharts.createChart(el,{height:350});
+series=chart.addCandlestickSeries();
+
+series.setData(historyData[stock]);
+}
+
+/* BROKERAGE */
+function brokerage(price,qty){
+return Math.min(price*qty*0.0003,20);
+}
+
+/* TRADE */
+function buy(){place("BUY")}
+function sell(){place("SELL")}
+
+function place(type){
+
+let stock=tradeSym.value.toUpperCase();
+let qtyVal=parseInt(qty.value||0);
+let price=prices[stock]||100;
+
+let brok=brokerage(price,qtyVal);
+let cost=price*qtyVal+brok;
+
+if(type=="BUY" && wallet<cost){
+alert("Insufficient Balance");
+return;
+}
+
+if(type=="BUY") wallet-=cost;
+else wallet+=price*qtyVal-brok;
+
+balance.innerText="₹"+wallet.toFixed(2);
+
+orders.push({stock,qtyVal,price,type});
+loadOrders();
+}
+
+/* ORDERS */
+function loadOrders(){
+
+ordersTbl.innerHTML="<tr><th>Stock</th><th>Qty</th><th>Price</th><th>Type</th></tr>";
+
+orders.forEach(o=>{
+ordersTbl.innerHTML+=
+`<tr>
+<td>${o.stock}</td>
+<td>${o.qtyVal}</td>
+<td>${o.price.toFixed(2)}</td>
+<td>${o.type}</td>
+</tr>`;
+});
+}
+
+/* LOGOUT */
+function logout(){location.reload();}
+
+</script>
+
+</body>
+</html>
