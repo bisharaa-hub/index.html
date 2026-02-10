@@ -1,315 +1,279 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NOVACORE</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NovaCore | Quantum Neural Trading Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --primary: #22c55e;
+            --accent: #a855f7;
+            --bg-dark: #05070d;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --border: #2d1b4d;
+            --text-dim: #94a3b8;
+        }
 
-<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg-dark); color: white; overflow-x: hidden; scroll-behavior: smooth; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .up { color: var(--primary); }
+        .down { color: #ef4444; }
 
-<style>
-body{
-margin:0;
-font-family:Arial;
-background:#0f172a;
-color:#e5e7eb;
-}
-header{
-background:#020617;
-color:#38bdf8;
-padding:12px;
-text-align:center;
-font-size:20px;
-font-weight:bold;
-}
-nav{
-background:#020617;
-display:flex;
-justify-content:space-around;
-padding:8px;
-}
-nav button{
-background:none;
-border:none;
-color:#aaa;
-font-size:14px;
-}
-.section{display:none;padding:12px;}
-.section.active{display:block;}
+        /* NAVIGATION */
+        nav { position: fixed; width: 100%; top: 0; padding: 15px 40px; background: rgba(5, 7, 13, 0.9); backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; z-index: 1000; border-bottom: 1px solid var(--border); }
+        nav h2 { font-weight: 700; background: linear-gradient(90deg, #38bdf8, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
+        .nav-btns button { background: #4f46e5; border: none; color: white; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
 
-.card{
-background:#020617;
-padding:12px;
-border-radius:10px;
-margin-bottom:10px;
-border:1px solid #1f2937;
-}
+        /* DASHBOARD TASKBAR (Hidden initially) */
+        .dashboard-taskbar { display: none; position: fixed; top: 65px; width: 100%; background: #0a0c14; border-bottom: 1px solid var(--border); z-index: 999; padding: 0 40px; }
+        .task-links { display: flex; gap: 25px; align-items: center; }
+        .task-item { padding: 15px 0; cursor: pointer; font-size: 13px; color: var(--text-dim); transition: 0.3s; position: relative; }
+        .task-item.active { color: var(--accent); font-weight: 600; }
+        .task-item.active::after { content:''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: var(--accent); }
 
-input,button{
-width:100%;
-padding:10px;
-margin:5px 0;
-border-radius:6px;
-border:none;
-}
-input{background:#111827;color:white}
-button{background:#3B82F6;color:white;font-weight:bold}
-.green{background:#22c55e}
-.red{background:#ef4444}
+        /* HERO & PAGES */
+        #features-page, #dashboard { display: none; }
+        .hero { height: 95vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; }
+        #chartbg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.1; z-index: -1; }
+        .btn-main { padding: 12px 30px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700; transition: 0.3s; }
+        .primary { background: var(--primary); color: black; }
+        .secondary { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
 
-table{width:100%;border-collapse:collapse}
-td,th{padding:6px;text-align:left}
-.up{color:#22c55e}
-.down{color:#ef4444}
-</style>
+        /* DASHBOARD GRID */
+        #dashboard { padding-top: 130px; animation: fadeIn 0.5s ease; padding-bottom: 50px; }
+        .tab-content { display: none; max-width: 1500px; margin: 0 auto; padding: 0 20px; }
+        .tab-content.active { display: block; }
+        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px); }
+        .main-grid { display: grid; grid-template-columns: 280px 1fr 320px; gap: 20px; }
+
+        /* WATCHLIST & TERMINAL */
+        .wl-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; font-size: 13px; }
+        .wl-item:hover { background: rgba(255,255,255,0.05); }
+        .t-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 12px; font-weight: bold; background: #111827; }
+        .t-tab.active.buy { background: var(--primary); color: black; }
+        .t-tab.active.sell { background: #ef4444; color: white; }
+
+        /* MODAL SYSTEM */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: #111827; padding: 30px; border-radius: 20px; width: 400px; border: 1px solid var(--border); }
+        .form-step { display: none; }
+        .form-step.active { display: block; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
+        .form-group input { width: 100%; padding: 10px; background: black; border: 1px solid var(--border); color: white; border-radius: 8px; }
+
+        /* AI BOT */
+        .ai-bot { position: fixed; bottom: 20px; right: 20px; width: 300px; background: #0f172a; border: 1px solid var(--accent); border-radius: 12px; z-index: 1001; display: none; }
+        .bot-header { background: var(--accent); padding: 10px; font-weight: bold; cursor: pointer; font-size: 12px; border-radius: 10px 10px 0 0; }
+        .bot-body { height: 0; transition: 0.3s; overflow: hidden; padding: 0 10px; font-size: 12px; }
+        .bot-body.open { height: 180px; padding: 10px; }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
 </head>
-
 <body>
 
-<header>NOVACORE</header>
-
-<nav id="menu" style="display:none">
-<button onclick="tab('home')">Home</button>
-<button onclick="tab('chart')">Chart</button>
-<button onclick="tab('trade')">Trade</button>
-<button onclick="logout()">Logout</button>
+<nav>
+    <h2 onclick="location.reload()">NovaCore</h2>
+    <div id="navStatus">
+        <div class="nav-btns">
+            <button id="mainActionBtn" onclick="openPortal()">Get Started</button>
+        </div>
+    </div>
 </nav>
 
-<!-- AUTH -->
-<div id="auth" class="section active">
-
-<div class="card">
-<h3>Register</h3>
-<input id="regPhone" placeholder="Phone">
-<input id="regAadhar" placeholder="Aadhar No">
-<input id="regPan" placeholder="PAN No">
-<input id="regUpi" placeholder="UPI ID">
-<input id="regPass" type="password" placeholder="Password">
-
-<button onclick="sendOTP()">Send OTP</button>
-
-<input id="regOTP" placeholder="Enter OTP" style="display:none">
-<button onclick="verifyOTP()" id="verifyBtn" style="display:none">Verify</button>
-
-<p id="regMsg"></p>
+<div class="dashboard-taskbar" id="dashNav">
+    <div class="task-links">
+        <div class="task-item active" onclick="setTab('terminal')">Terminal</div>
+        <div class="task-item" onclick="setTab('portfolio')">Portfolio</div>
+        <div class="task-item" onclick="setTab('pulse')">Global Pulse</div>
+    </div>
 </div>
 
-<div class="card">
-<h3>Login</h3>
-<input id="loginPhone" placeholder="Phone">
-<input id="loginPass" type="password" placeholder="Password">
-<button onclick="login()">Login</button>
+<div id="landingUI">
+    <section class="hero">
+        <canvas id="chartbg"></canvas>
+        <h1 class="mono" style="font-size: 3.5rem;">TRADE THE <span style="color:var(--accent)">FUTURE</span></h1>
+        <p style="color:var(--text-dim); margin-bottom: 25px;">Institutional Sentiment & Global Macro Analytics for Retail.</p>
+        <div class="hero-btns">
+            <button class="btn-main primary" onclick="openPortal()">Join Now</button>
+            <button class="btn-main secondary" onclick="toggleView('features')">View Features</button>
+        </div>
+    </section>
 </div>
 
+<div id="features-page" style="padding-top: 100px; max-width: 800px; margin: 0 auto;">
+    <div class="card">
+        <h1 class="up">Platform Guide</h1>
+        <p style="margin: 20px 0;">NovaCore utilizes Neural Networks to analyze Dark Pool data, providing you with institutional-grade insights.</p>
+        <h3 class="up">Brokerage Structure</h3>
+        <table style="width:100%; margin-top: 10px; border-collapse: collapse;">
+            <tr style="text-align: left; color: var(--accent);"><th>Type</th><th>Charge</th></tr>
+            <tr><td>Equity Delivery</td><td>₹0</td></tr>
+            <tr><td>Intraday</td><td>₹20</td></tr>
+        </table>
+        <button class="btn-main primary" style="margin-top: 30px;" onclick="openPortal()">Back to Registration</button>
+    </div>
 </div>
 
-<!-- HOME -->
-<div id="home" class="section">
+<div id="dashboard">
+    <div id="tab-terminal" class="tab-content active">
+        <div class="main-grid">
+            <div class="card" style="padding: 10px 0;">
+                <h4 class="mono" style="padding: 10px 20px; color: var(--accent); font-size: 12px;">WATCHLIST</h4>
+                <div class="wl-item" onclick="updateChart('ZOMATO', 188.30, '+4.8%')"><span>ZOMATO</span><span class="up">188.30</span></div>
+                <div class="wl-item" onclick="updateChart('RELIANCE', 2985.40, '+1.2%')"><span>RELIANCE</span><span class="up">2,985.40</span></div>
+                <div class="wl-item" onclick="updateChart('TCS', 4120.15, '-0.4%')"><span>TCS</span><span class="down">4,120.15</span></div>
+            </div>
 
-<div class="card">
-<h3>User Details</h3>
-<p>Phone: <span id="userPhone"></span></p>
-<p>Aadhar: <span id="userAadhar"></span></p>
-<p>PAN: <span id="userPan"></span></p>
-<p>UPI: <span id="userUpi"></span></p>
+            <div>
+                <div class="card" style="padding: 10px;">
+                    <div style="display:flex; justify-content:space-between; padding: 10px;">
+                        <h3 id="activeSymbol">ZOMATO</h3>
+                        <h3 id="activePrice" class="up">₹188.30</h3>
+                    </div>
+                    <div id="mainTradingChart" style="height: 480px;"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div style="display:flex; border-radius: 8px; overflow:hidden; margin-bottom: 20px;">
+                    <div class="t-tab buy active" onclick="setSide('buy')">BUY</div>
+                    <div class="t-tab sell" onclick="setSide('sell')">SELL</div>
+                </div>
+                <label style="font-size: 11px; color: var(--text-dim);">QUANTITY</label>
+                <input type="number" id="orderQty" class="mono" value="100" style="width:100%; padding:10px; background:black; border:1px solid var(--border); color:white; margin: 5px 0 15px;">
+                <button class="btn-main primary" id="execBtn" style="width:100%;" onclick="alert('Order Sent')">PLACE BUY ORDER</button>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="card">
-<h3>Wallet</h3>
-<h2 id="balance">₹100000</h2>
-<input id="depositAmt" type="number" placeholder="Deposit">
-<button class="green" onclick="deposit()">Deposit</button>
+<div class="modal-overlay" id="mainModal">
+    <div class="modal-content">
+        <div class="form-step active" id="portalStep">
+            <h2 style="margin-bottom: 20px;">Welcome</h2>
+            <button class="btn-main primary" style="width:100%; margin-bottom: 10px;" onclick="showView('register')">Register New Account</button>
+            <button class="btn-main secondary" style="width:100%" onclick="showView('login')">Login</button>
+        </div>
+
+        <div class="form-step" id="registerStep">
+            <h2>Account Opening</h2>
+            <div class="form-group"><label>Name</label><input type="text" id="regUser"></div>
+            <div class="form-group"><label>Mobile</label><input type="tel" id="regPhone"></div>
+            <div class="form-group"><label>PAN</label><input type="text" placeholder="ABCDE1234F"></div>
+            <button class="btn-main primary" style="width:100%" onclick="triggerOTP()">Continue to OTP</button>
+        </div>
+
+        <div class="form-step" id="loginStep">
+            <h2>Login</h2>
+            <div class="form-group"><label>Mobile</label><input type="tel"></div>
+            <button class="btn-main primary" style="width:100%" onclick="triggerOTP()">Get OTP</button>
+        </div>
+
+        <div class="form-step" id="otpStep">
+            <h2>Verify Identity</h2>
+            <p style="font-size:12px; margin-bottom:15px; color:var(--accent)">Enter 1234 to activate terminal</p>
+            <input type="text" id="otpIn" maxlength="4" style="width:100%; padding:15px; background:black; border:1px solid var(--border); color:white; text-align:center; letter-spacing:10px; font-size:20px;">
+            <button class="btn-main primary" style="width:100%; margin-top:20px;" onclick="verifyAndFinish()">UNLOCK TERMINAL</button>
+        </div>
+    </div>
 </div>
 
-</div>
-
-<!-- CHART -->
-<div id="chart" class="section">
-<div id="chartBox" style="height:350px"></div>
-</div>
-
-<!-- TRADE -->
-<div id="trade" class="section">
-
-<div class="card">
-<h3>Trade</h3>
-<input id="tradeSym" placeholder="Stock Name">
-<input id="qty" type="number" placeholder="Qty">
-<button class="green" onclick="buy()">BUY</button>
-<button class="red" onclick="sell()">SELL</button>
-</div>
-
-<div class="card">
-<h3>Orders</h3>
-<table id="ordersTbl"></table>
-</div>
-
+<div class="ai-bot" id="geminiBot">
+    <div class="bot-header" onclick="toggleBot()">GEMINI AI HELPER</div>
+    <div class="bot-body" id="botBody">
+        <p>Market is currently bullish. I see high liquidity entering ZOMATO. Global sentiment favors a rally.</p>
+    </div>
 </div>
 
 <script>
+    // VIEW CONTROLS
+    function openPortal() { 
+        document.getElementById('features-page').style.display = 'none';
+        document.getElementById('landingUI').style.display = 'block';
+        document.getElementById('mainModal').style.display = 'flex'; 
+    }
 
-let prices={"RELIANCE":2450,"TCS":3800,"INFY":1600};
-let wallet=100000;
-let orders=[];
-let historyData={};
-let chart,series;
+    function showView(id) {
+        document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+        document.getElementById(id + 'Step').classList.add('active');
+    }
 
-/* NAV */
-function tab(id){
-document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
+    function toggleView(view) {
+        document.getElementById('landingUI').style.display = view === 'home' ? 'block' : 'none';
+        document.getElementById('features-page').style.display = view === 'features' ? 'block' : 'none';
+    }
 
-/* OTP DEMO */
-function sendOTP(){
+    function triggerOTP() { showView('otp'); }
 
-let otp=Math.floor(100000+Math.random()*900000);
-localStorage.setItem("otp",otp);
+    // THE INTEGRATION KEY
+    function verifyAndFinish() {
+        const pin = document.getElementById('otpIn').value;
+        if(pin === "1234") {
+            // 1. Hide everything related to landing/auth
+            document.getElementById('mainModal').style.display = 'none';
+            document.getElementById('landingUI').style.display = 'none';
+            document.getElementById('features-page').style.display = 'none';
+            
+            // 2. Show the Dashboard and Terminal UI
+            document.getElementById('dashboard').style.display = 'block';
+            document.getElementById('dashNav').style.display = 'block';
+            document.getElementById('geminiBot').style.display = 'block';
+            
+            // 3. Update Nav Status
+            document.getElementById('navStatus').innerHTML = '<span class="mono up" style="font-size:12px;">● QUANTUM_ACTIVE</span>';
+            
+            // 4. Start Charts
+            initChart();
+            alert("Terminal Decrypted. Welcome, Trader.");
+        } else {
+            alert("Invalid OTP. Use 1234");
+        }
+    }
 
-/* Demo OTP display */
-regMsg.innerText="Demo OTP: "+otp;
+    // TERMINAL LOGIC
+    function setTab(t) {
+        document.querySelectorAll('.task-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.getElementById('tab-'+t).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
 
-regOTP.style.display="block";
-verifyBtn.style.display="block";
-}
+    function initChart() {
+        const chart = LightweightCharts.createChart(document.getElementById('mainTradingChart'), {
+            layout: { background: { color: 'transparent' }, textColor: '#9ca3af' },
+            grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
+        });
+        const series = chart.addCandlestickSeries({ upColor: '#22c55e', downColor: '#ef4444' });
+        let data = []; let p = 180;
+        for(let i=0; i<100; i++) {
+            let o=p; let c=p+(Math.random()*10-5);
+            data.push({ time: 1704067200 + i*86400, open:o, high:Math.max(o,c)+2, low:Math.min(o,c)-2, close:c });
+            p=c;
+        }
+        series.setData(data);
+    }
 
-function verifyOTP(){
+    function toggleBot() { document.getElementById('botBody').classList.toggle('open'); }
 
-if(regOTP.value==localStorage.getItem("otp")){
+    // LANDING CHART ANIMATION
+    const ctx = document.getElementById('chartbg').getContext('2d');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: Array(20).fill(''),
+            datasets: [{ data: Array(20).fill(0).map(() => Math.random() * 100), borderColor: '#22c55e', borderWidth: 2, fill: false }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } }, elements: { point: { radius: 0 } } }
+    });
 
-localStorage.setItem("user",JSON.stringify({
-phone:regPhone.value,
-aadhar:regAadhar.value,
-pan:regPan.value,
-upi:regUpi.value,
-pass:regPass.value
-}));
-
-regMsg.innerText="Registration Successful";
-}
-else{
-regMsg.innerText="Invalid OTP";
-}
-}
-
-/* LOGIN */
-function login(){
-
-let u=JSON.parse(localStorage.getItem("user"));
-
-if(u && u.phone==loginPhone.value && u.pass==loginPass.value){
-
-auth.style.display="none";
-menu.style.display="flex";
-
-userPhone.innerText=u.phone;
-userAadhar.innerText=u.aadhar;
-userPan.innerText=u.pan;
-userUpi.innerText=u.upi;
-
-initHistory();
-loadChart("RELIANCE");
-tab("home");
-}
-}
-
-/* WALLET */
-function deposit(){
-wallet+=parseFloat(depositAmt.value||0);
-balance.innerText="₹"+wallet.toFixed(2);
-}
-
-/* HISTORY */
-function generateHistory(stock,basePrice){
-
-let data=[];
-let base=basePrice;
-
-for(let i=200;i>=0;i--){
-
-let o=base+(Math.random()*10-5);
-let c=o+(Math.random()*8-4);
-let h=Math.max(o,c)+5;
-let l=Math.min(o,c)-5;
-base=c;
-
-data.push({
-time:Math.floor(Date.now()/1000)-i*86400,
-open:o,high:h,low:l,close:c
-});
-}
-historyData[stock]=data;
-}
-
-function initHistory(){
-for(let s in prices){
-generateHistory(s,prices[s]);
-}
-}
-
-/* CHART */
-function loadChart(stock){
-
-let el=document.getElementById("chartBox");
-el.innerHTML="";
-
-chart=LightweightCharts.createChart(el,{height:350});
-series=chart.addCandlestickSeries();
-
-series.setData(historyData[stock]);
-}
-
-/* BROKERAGE */
-function brokerage(price,qty){
-return Math.min(price*qty*0.0003,20);
-}
-
-/* TRADE */
-function buy(){place("BUY")}
-function sell(){place("SELL")}
-
-function place(type){
-
-let stock=tradeSym.value.toUpperCase();
-let qtyVal=parseInt(qty.value||0);
-let price=prices[stock]||100;
-
-let brok=brokerage(price,qtyVal);
-let cost=price*qtyVal+brok;
-
-if(type=="BUY" && wallet<cost){
-alert("Insufficient Balance");
-return;
-}
-
-if(type=="BUY") wallet-=cost;
-else wallet+=price*qtyVal-brok;
-
-balance.innerText="₹"+wallet.toFixed(2);
-
-orders.push({stock,qtyVal,price,type});
-loadOrders();
-}
-
-/* ORDERS */
-function loadOrders(){
-
-ordersTbl.innerHTML="<tr><th>Stock</th><th>Qty</th><th>Price</th><th>Type</th></tr>";
-
-orders.forEach(o=>{
-ordersTbl.innerHTML+=
-`<tr>
-<td>${o.stock}</td>
-<td>${o.qtyVal}</td>
-<td>${o.price.toFixed(2)}</td>
-<td>${o.type}</td>
-</tr>`;
-});
-}
-
-/* LOGOUT */
-function logout(){location.reload();}
-
+    window.onclick = e => { if(e.target == document.getElementById('mainModal')) document.getElementById('mainModal').style.display='none'; }
 </script>
-
 </body>
 </html>
