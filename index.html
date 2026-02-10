@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ZenTrade Pro</title>
+<title>NOVACORE</title>
 
 <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
 
@@ -65,9 +65,8 @@ td,th{padding:6px;text-align:left}
 
 <body>
 
-<header>ZenTrade Pro</header>
+<header>NOVACORE</header>
 
-<!-- NAV -->
 <nav id="menu" style="display:none">
 <button onclick="tab('home')">Home</button>
 <button onclick="tab('chart')">Chart</button>
@@ -78,18 +77,11 @@ td,th{padding:6px;text-align:left}
 
 <!-- AUTH -->
 <div id="auth" class="section active">
-
 <div class="card">
 <h3>Register</h3>
-<input id="regName" placeholder="Name">
 <input id="regPhone" placeholder="Phone">
-<input id="regAadhar" placeholder="Aadhar">
-<input id="regPan" placeholder="PAN">
-<input id="regUpi" placeholder="UPI ID">
 <input id="regPass" type="password" placeholder="Password">
-
 <button onclick="sendOTP()">Send OTP</button>
-
 <input id="regOTP" placeholder="Enter OTP" style="display:none">
 <button onclick="verifyOTP()" id="verifyBtn" style="display:none">Verify</button>
 <p id="regMsg"></p>
@@ -101,12 +93,10 @@ td,th{padding:6px;text-align:left}
 <input id="loginPass" type="password" placeholder="Password">
 <button onclick="login()">Login</button>
 </div>
-
 </div>
 
 <!-- HOME -->
 <div id="home" class="section">
-
 <div class="card">
 <h3>Wallet</h3>
 <h2 id="balance">₹100000</h2>
@@ -118,7 +108,6 @@ td,th{padding:6px;text-align:left}
 <h3>Watchlist</h3>
 <table id="watchTbl"></table>
 </div>
-
 </div>
 
 <!-- CHART -->
@@ -128,10 +117,9 @@ td,th{padding:6px;text-align:left}
 
 <!-- TRADE -->
 <div id="trade" class="section">
-
 <div class="card">
 <h3>Trade</h3>
-<input id="tradeSym" placeholder="Symbol">
+<input id="tradeSym" placeholder="Stock Name">
 <input id="qty" type="number" placeholder="Qty">
 <button class="green" onclick="buy()">BUY</button>
 <button class="red" onclick="sell()">SELL</button>
@@ -141,171 +129,9 @@ td,th{padding:6px;text-align:left}
 <h3>Orders</h3>
 <table id="ordersTbl"></table>
 </div>
-
 </div>
 
-<!-- MOVERS -->
 <div id="movers" class="section">
 <div class="card">
 <h3>Market Movers</h3>
 <ul>
-<li>RELIANCE ▲ 3.2%</li>
-<li>TCS ▲ 2.4%</li>
-<li>INFY ▼ 1.1%</li>
-<li>HDFCBANK ▲ 2.8%</li>
-</ul>
-</div>
-</div>
-
-<script>
-let prices={
-"AAPL":185,
-"TSLA":230,
-"RELIANCE":2450,
-"TCS":3800,
-"INFY":1600
-};
-
-let wallet=100000;
-let orders=[];
-
-/* ---------- NAV ---------- */
-function tab(id){
-document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-}
-
-/* ---------- OTP ---------- */
-function sendOTP(){
-let otp=Math.floor(100000+Math.random()*900000);
-localStorage.setItem("otp",otp);
-alert("Demo OTP: "+otp);
-regOTP.style.display="block";
-verifyBtn.style.display="block";
-}
-
-function verifyOTP(){
-if(regOTP.value==localStorage.getItem("otp")){
-localStorage.setItem("user",JSON.stringify({
-phone:regPhone.value,
-pass:regPass.value
-}));
-regMsg.innerText="Registered!";
-}
-}
-
-/* ---------- LOGIN ---------- */
-function login(){
-let u=JSON.parse(localStorage.getItem("user"));
-if(u && u.phone==loginPhone.value && u.pass==loginPass.value){
-auth.style.display="none";
-menu.style.display="flex";
-tab("home");
-loadWatch();
-loadChart();
-}
-}
-
-/* ---------- LOGOUT ---------- */
-function logout(){location.reload();}
-
-/* ---------- WALLET ---------- */
-function deposit(){
-wallet+=parseFloat(depositAmt.value||0);
-balance.innerText="₹"+wallet.toFixed(2);
-}
-
-/* ---------- WATCHLIST ---------- */
-function loadWatch(){
-watchTbl.innerHTML="<tr><th>Stock</th><th>Price</th></tr>";
-
-for(let s in prices){
-let change=(Math.random()*10-5);
-prices[s]+=change;
-
-let cls=change>=0?"up":"down";
-
-watchTbl.innerHTML+=
-`<tr><td>${s}</td>
-<td class="${cls}">₹${prices[s].toFixed(2)}</td></tr>`;
-}
-}
-setInterval(loadWatch,4000);
-
-/* ---------- BROKERAGE ---------- */
-function brokerage(price,qty){
-let turnover=price*qty;
-return Math.min(turnover*0.0003,20);
-}
-
-/* ---------- TRADE ---------- */
-function buy(){place("BUY")}
-function sell(){place("SELL")}
-
-function place(type){
-let sym=tradeSym.value.toUpperCase();
-let quantity=parseInt(qty.value||0);
-let price=prices[sym]||100;
-
-let brok=brokerage(price,quantity);
-let cost=price*quantity+brok;
-
-if(type=="BUY" && wallet<cost){
-alert("Not enough balance");
-return;
-}
-
-if(type=="BUY") wallet-=cost;
-else wallet+=price*quantity-brok;
-
-balance.innerText="₹"+wallet.toFixed(2);
-
-orders.push({sym,quantity,price,type,brok});
-loadOrders();
-}
-
-/* ---------- ORDER TABLE ---------- */
-function loadOrders(){
-ordersTbl.innerHTML=
-"<tr><th>Stock</th><th>Qty</th><th>Price</th><th>Type</th></tr>";
-
-orders.forEach(o=>{
-ordersTbl.innerHTML+=
-`<tr>
-<td>${o.sym}</td>
-<td>${o.quantity}</td>
-<td>${o.price.toFixed(2)}</td>
-<td>${o.type}</td>
-</tr>`;
-});
-}
-
-/* ---------- CHART ---------- */
-function loadChart(){
-let el=document.getElementById("chartBox");
-el.innerHTML="";
-let chart=LightweightCharts.createChart(el,{height:350});
-let series=chart.addCandlestickSeries();
-
-let data=[];
-let base=180;
-
-for(let i=0;i<200;i++){
-let o=base+(Math.random()*10-5);
-let c=o+(Math.random()*8-4);
-let h=Math.max(o,c)+5;
-let l=Math.min(o,c)-5;
-base=c;
-
-data.push({
-time:Math.floor(Date.now()/1000)-i*86400,
-open:o,high:h,low:l,close:c
-});
-}
-
-series.setData(data.reverse());
-}
-</script>
-
-</body>
-</html>
