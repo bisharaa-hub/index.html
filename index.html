@@ -3,277 +3,282 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NovaCore | Quantum Neural Trading Terminal</title>
+    <title>NovaCore | Quantum Terminal</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root {
-            --primary: #22c55e;
-            --accent: #a855f7;
-            --bg-dark: #05070d;
-            --card-bg: rgba(255, 255, 255, 0.05);
-            --border: #2d1b4d;
-            --text-dim: #94a3b8;
+            --primary: #22c55e; --accent: #38bdf8; --danger: #ef4444;
+            --bg-dark: #05070d; --card-bg: #0f172a; --glass: rgba(255, 255, 255, 0.05);
         }
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Poppins', sans-serif; background: var(--bg-dark); color: white; overflow-x: hidden; scroll-behavior: smooth; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
+        body { font-family: 'Poppins', sans-serif; background: var(--bg-dark); color: white; overflow-x: hidden; }
+        
+        /* Helper Classes */
+        .hidden { display: none !important; }
         .up { color: var(--primary); }
-        .down { color: #ef4444; }
+        .down { color: var(--danger); }
+        
+        /* Navigation */
+        nav { position: fixed; width: 100%; top: 0; padding: 15px 40px; background: rgba(10, 12, 20, 0.9); backdrop-filter: blur(10px); display: flex; justify-content: space-between; align-items: center; z-index: 1000; border-bottom: 1px solid #1f2937; }
+        .logo { font-weight: 700; font-size: 1.5rem; background: linear-gradient(90deg, var(--accent), #a855f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
 
-        /* NAVIGATION */
-        nav { position: fixed; width: 100%; top: 0; padding: 15px 40px; background: rgba(5, 7, 13, 0.9); backdrop-filter: blur(12px); display: flex; justify-content: space-between; align-items: center; z-index: 1000; border-bottom: 1px solid var(--border); }
-        nav h2 { font-weight: 700; background: linear-gradient(90deg, #38bdf8, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; cursor: pointer; }
-        .nav-btns button { background: #4f46e5; border: none; color: white; padding: 8px 20px; border-radius: 8px; cursor: pointer; font-weight: 500; }
+        /* Landing & Features */
+        .section-padding { padding: 120px 40px 60px; }
+        .hero { height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+        .btn-glow { padding: 12px 30px; background: var(--primary); color: black; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; transition: 0.3s; }
+        .btn-sec { background: transparent; border: 1px solid var(--accent); color: var(--accent); margin-left: 10px; }
+        
+        /* Features Table */
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: var(--glass); }
+        th, td { padding: 15px; border: 1px solid #1f2937; text-align: left; font-size: 14px; }
+        th { background: rgba(56, 189, 248, 0.1); }
 
-        /* DASHBOARD TASKBAR (Hidden initially) */
-        .dashboard-taskbar { display: none; position: fixed; top: 65px; width: 100%; background: #0a0c14; border-bottom: 1px solid var(--border); z-index: 999; padding: 0 40px; }
-        .task-links { display: flex; gap: 25px; align-items: center; }
-        .task-item { padding: 15px 0; cursor: pointer; font-size: 13px; color: var(--text-dim); transition: 0.3s; position: relative; }
-        .task-item.active { color: var(--accent); font-weight: 600; }
-        .task-item.active::after { content:''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px; background: var(--accent); }
-
-        /* HERO & PAGES */
-        #features-page, #dashboard { display: none; }
-        .hero { height: 95vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; }
-        #chartbg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0.1; z-index: -1; }
-        .btn-main { padding: 12px 30px; border-radius: 10px; border: none; cursor: pointer; font-weight: 700; transition: 0.3s; }
-        .primary { background: var(--primary); color: black; }
-        .secondary { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
-
-        /* DASHBOARD GRID */
-        #dashboard { padding-top: 130px; animation: fadeIn 0.5s ease; padding-bottom: 50px; }
-        .tab-content { display: none; max-width: 1500px; margin: 0 auto; padding: 0 20px; }
-        .tab-content.active { display: block; }
-        .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; backdrop-filter: blur(10px); }
-        .main-grid { display: grid; grid-template-columns: 280px 1fr 320px; gap: 20px; }
-
-        /* WATCHLIST & TERMINAL */
-        .wl-item { display: flex; justify-content: space-between; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer; font-size: 13px; }
-        .wl-item:hover { background: rgba(255,255,255,0.05); }
-        .t-tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; font-size: 12px; font-weight: bold; background: #111827; }
-        .t-tab.active.buy { background: var(--primary); color: black; }
-        .t-tab.active.sell { background: #ef4444; color: white; }
-
-        /* MODAL SYSTEM */
+        /* Auth Modal */
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 2000; }
-        .modal-content { background: #111827; padding: 30px; border-radius: 20px; width: 400px; border: 1px solid var(--border); }
-        .form-step { display: none; }
-        .form-step.active { display: block; }
-        .form-group { margin-bottom: 12px; }
-        .form-group label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 4px; }
-        .form-group input { width: 100%; padding: 10px; background: black; border: 1px solid var(--border); color: white; border-radius: 8px; }
+        .modal-card { background: var(--card-bg); padding: 30px; border-radius: 20px; width: 100%; max-width: 450px; border: 1px solid #334155; }
+        input { width: 100%; padding: 12px; margin: 8px 0; background: #1e293b; border: 1px solid #334155; color: white; border-radius: 6px; }
 
-        /* AI BOT */
-        .ai-bot { position: fixed; bottom: 20px; right: 20px; width: 300px; background: #0f172a; border: 1px solid var(--accent); border-radius: 12px; z-index: 1001; display: none; }
-        .bot-header { background: var(--accent); padding: 10px; font-weight: bold; cursor: pointer; font-size: 12px; border-radius: 10px 10px 0 0; }
-        .bot-body { height: 0; transition: 0.3s; overflow: hidden; padding: 0 10px; font-size: 12px; }
-        .bot-body.open { height: 180px; padding: 10px; }
+        /* Terminal Layout */
+        .terminal-grid { display: grid; grid-template-columns: 240px 1fr 300px; gap: 20px; padding: 80px 20px 20px; height: 100vh; }
+        .sidebar { display: flex; flex-direction: column; gap: 5px; border-right: 1px solid #1f2937; padding-right: 15px; }
+        .nav-item { padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; font-size: 14px; }
+        .nav-item:hover, .nav-item.active { background: var(--glass); color: var(--accent); }
+        .content-area { overflow-y: auto; padding-right: 10px; }
+        .t-card { background: var(--glass); border: 1px solid #1f2937; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* Chatbot */
+        #chatbot { position: fixed; bottom: 20px; right: 20px; width: 50px; height: 50px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 24px; }
     </style>
 </head>
 <body>
 
 <nav>
-    <h2 onclick="location.reload()">NovaCore</h2>
-    <div id="navStatus">
-        <div class="nav-btns">
-            <button id="mainActionBtn" onclick="openPortal()">Get Started</button>
-        </div>
+    <div class="logo" onclick="showPage('landing')">NovaCore</div>
+    <div id="nav-links">
+        <button class="btn-glow" onclick="openAuth()">JOIN NOW</button>
     </div>
 </nav>
 
-<div class="dashboard-taskbar" id="dashNav">
-    <div class="task-links">
-        <div class="task-item active" onclick="setTab('terminal')">Terminal</div>
-        <div class="task-item" onclick="setTab('portfolio')">Portfolio</div>
-        <div class="task-item" onclick="setTab('pulse')">Global Pulse</div>
+<div id="page-landing" class="section-padding">
+    <div class="hero">
+        <h1>Institutional Quantum Trading</h1>
+        <p style="margin-bottom: 30px; opacity: 0.7;">Secure. Fast. NSE & SEBI Compliant.</p>
+        <div>
+            <button class="btn-glow" onclick="openAuth()">GET STARTED</button>
+            <button class="btn-glow btn-sec" onclick="showPage('features')">VIEW FEATURES</button>
+        </div>
     </div>
 </div>
 
-<div id="landingUI">
-    <section class="hero">
-        <canvas id="chartbg"></canvas>
-        <h1 class="mono" style="font-size: 3.5rem;">TRADE THE <span style="color:var(--accent)">FUTURE</span></h1>
-        <p style="color:var(--text-dim); margin-bottom: 25px;">Institutional Sentiment & Global Macro Analytics for Retail.</p>
-        <div class="hero-btns">
-            <button class="btn-main primary" onclick="openPortal()">Join Now</button>
-            <button class="btn-main secondary" onclick="toggleView('features')">View Features</button>
-        </div>
-    </section>
-</div>
-
-<div id="features-page" style="padding-top: 100px; max-width: 800px; margin: 0 auto;">
-    <div class="card">
-        <h1 class="up">Platform Guide</h1>
-        <p style="margin: 20px 0;">NovaCore utilizes Neural Networks to analyze Dark Pool data, providing you with institutional-grade insights.</p>
-        <h3 class="up">Brokerage Structure</h3>
-        <table style="width:100%; margin-top: 10px; border-collapse: collapse;">
-            <tr style="text-align: left; color: var(--accent);"><th>Type</th><th>Charge</th></tr>
-            <tr><td>Equity Delivery</td><td>₹0</td></tr>
-            <tr><td>Intraday</td><td>₹20</td></tr>
+<div id="page-features" class="section-padding hidden">
+    <h2>Platform Features & Guidelines</h2>
+    <div class="t-card">
+        <h3>1. Registration Process</h3>
+        <p>Complete e-KYC → Link UPI → Activate Segments → Start Trading.</p>
+    </div>
+    <div class="t-card">
+        <h3>2. Statutory Charges (NSE Standards)</h3>
+        <table>
+            <tr><th>Charge</th><th>Equity Intraday</th><th>Equity Delivery</th></tr>
+            <tr><td>Brokerage</td><td>₹20 or 0.03%</td><td>₹0 (Free)</td></tr>
+            <tr><td>STT/CTT</td><td>0.025% (Sell)</td><td>0.1% (Buy/Sell)</td></tr>
+            <tr><td>Transaction Charges</td><td>0.00325%</td><td>0.00325%</td></tr>
         </table>
-        <button class="btn-main primary" style="margin-top: 30px;" onclick="openPortal()">Back to Registration</button>
+    </div>
+    <div class="t-card" style="border: 1px solid gold;">
+        <h3 style="color: gold;">3. NovaCore Premium Pack</h3>
+        <p>Includes AI Trade Signals, Zero Brokerage on F&O, and Quantum Hedge access.</p>
+        <p style="font-size: 20px; margin: 10px 0;">₹4999 / Year</p>
+        <button class="btn-glow" style="background: gold;" onclick="payPremium()">PAY NOW</button>
     </div>
 </div>
 
-<div id="dashboard">
-    <div id="tab-terminal" class="tab-content active">
-        <div class="main-grid">
-            <div class="card" style="padding: 10px 0;">
-                <h4 class="mono" style="padding: 10px 20px; color: var(--accent); font-size: 12px;">WATCHLIST</h4>
-                <div class="wl-item" onclick="updateChart('ZOMATO', 188.30, '+4.8%')"><span>ZOMATO</span><span class="up">188.30</span></div>
-                <div class="wl-item" onclick="updateChart('RELIANCE', 2985.40, '+1.2%')"><span>RELIANCE</span><span class="up">2,985.40</span></div>
-                <div class="wl-item" onclick="updateChart('TCS', 4120.15, '-0.4%')"><span>TCS</span><span class="down">4,120.15</span></div>
+<div id="page-terminal" class="hidden">
+    <div class="terminal-grid">
+        <aside class="sidebar">
+            <div class="nav-item active" onclick="showTab('home')">Home</div>
+            <div class="nav-item" onclick="showTab('portfolio')">Portfolio</div>
+            <div class="nav-item" onclick="showTab('orders')">Orders</div>
+            <div class="nav-item" onclick="showTab('bids')">Bids</div>
+            <div class="nav-item" onclick="showTab('history')">History</div>
+            <div class="nav-item" onclick="showTab('profile')">Profile</div>
+            <div class="t-card" style="margin-top: auto; border-color: var(--accent); padding: 10px;">
+                <small>QUANTUM HEDGE</small>
+                <p style="font-size: 11px; margin-top: 5px;">Your current portfolio is 84% optimized for the upcoming volatility.</p>
             </div>
+        </aside>
 
-            <div>
-                <div class="card" style="padding: 10px;">
-                    <div style="display:flex; justify-content:space-between; padding: 10px;">
-                        <h3 id="activeSymbol">ZOMATO</h3>
-                        <h3 id="activePrice" class="up">₹188.30</h3>
+        <main class="content-area">
+            <div id="tab-home" class="tab-content">
+                <div class="t-card">
+                    <h3>NIFTY 50</h3>
+                    <canvas id="niftyChart" height="150"></canvas>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="t-card">
+                        <small class="up">MARKET SPIKES ▲</small>
+                        <div style="margin-top:10px">RELIANCE (+2.4%)<br>SBI (+1.8%)</div>
                     </div>
-                    <div id="mainTradingChart" style="height: 480px;"></div>
+                    <div class="t-card">
+                        <small class="down">MARKET DROPS ▼</small>
+                        <div style="margin-top:10px">TCS (-1.1%)<br>TATA MOTORS (-2.5%)</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="card">
-                <div style="display:flex; border-radius: 8px; overflow:hidden; margin-bottom: 20px;">
-                    <div class="t-tab buy active" onclick="setSide('buy')">BUY</div>
-                    <div class="t-tab sell" onclick="setSide('sell')">SELL</div>
-                </div>
-                <label style="font-size: 11px; color: var(--text-dim);">QUANTITY</label>
-                <input type="number" id="orderQty" class="mono" value="100" style="width:100%; padding:10px; background:black; border:1px solid var(--border); color:white; margin: 5px 0 15px;">
-                <button class="btn-main primary" id="execBtn" style="width:100%;" onclick="alert('Order Sent')">PLACE BUY ORDER</button>
+            <div id="tab-portfolio" class="tab-content hidden">
+                <h3>Current Holdings</h3>
+                <table>
+                    <tr><th>Stock</th><th>Qty</th><th>Avg Price</th><th>P&L</th></tr>
+                    <tr><td>ZOMATO</td><td>100</td><td>252.00</td><td class="up">+₹3,200</td></tr>
+                    <tr><td>JIOFIN</td><td>50</td><td>345.50</td><td class="down">-₹140</td></tr>
+                </table>
             </div>
+
+            <div id="tab-orders" class="tab-content hidden">
+                <h3>Today's Orders</h3>
+                <table>
+                    <tr><th>Time</th><th>Stock</th><th>Type</th><th>Status</th></tr>
+                    <tr><td>10:15 AM</td><td>INFY</td><td>BUY</td><td class="up">Completed</td></tr>
+                    <tr><td>01:45 PM</td><td>HDFCBANK</td><td>SELL</td><td class="up">Completed</td></tr>
+                </table>
+            </div>
+
+            <div id="tab-bids" class="tab-content hidden">
+                <h3>Live IPO Bids</h3>
+                <div class="t-card" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div><strong>NovaCore Tech IPO</strong><br><small>Price Band: ₹450 - ₹480</small></div>
+                    <button class="btn-glow" onclick="alert('Bid Applied Successfully')">APPLY</button>
+                </div>
+            </div>
+
+            <div id="tab-history" class="tab-content hidden">
+                <div style="text-align: center; padding: 50px; opacity: 0.5;">No prior transaction history found.</div>
+            </div>
+
+            <div id="tab-profile" class="tab-content hidden">
+                <h3>User Profile</h3>
+                <div class="t-card">
+                    <p><strong>Name:</strong> <span id="display-name">Trader</span></p>
+                    <p><strong>PAN:</strong> ABCDE****F</p>
+                    <p><strong>Aadhar:</strong> ****-****-1234</p>
+                    <br>
+                    <button class="btn-glow" style="background: var(--danger);" onclick="location.reload()">LOGOUT</button>
+                </div>
+            </div>
+        </main>
+
+        <aside class="watchlist">
+            <h4>Watchlist</h4>
+            <div class="t-card" style="padding: 10px; font-size: 13px;">
+                <div style="display:flex; justify-content:space-between"><span>TATASTEEL</span><span class="up">154.20</span></div>
+                <hr style="opacity:0.1; margin:8px 0">
+                <div style="display:flex; justify-content:space-between"><span>ADANIENT</span><span class="down">3120.00</span></div>
+                <hr style="opacity:0.1; margin:8px 0">
+                <div style="display:flex; justify-content:space-between"><span>PAYTM</span><span class="up">720.50</span></div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<div class="modal-overlay" id="authModal">
+    <div class="modal-card">
+        <div id="auth-choice">
+            <h2>Welcome to NovaCore</h2>
+            <button class="btn-glow" style="width:100%; margin-top: 15px;" onclick="showAuth('register')">New User Registration</button>
+            <button class="btn-glow btn-sec" style="width:100%; margin: 15px 0 0 0;" onclick="showAuth('login')">Already Registered? Login</button>
+        </div>
+
+        <div id="form-register" class="hidden">
+            <h3>Create Account</h3>
+            <input type="text" id="in-name" placeholder="User Name">
+            <input type="tel" id="in-phone" placeholder="Phone Number">
+            <input type="password" placeholder="Password">
+            <input type="text" placeholder="Aadhar Number">
+            <input type="text" placeholder="PAN Number">
+            <input type="text" placeholder="UPI ID">
+            <button class="btn-glow" style="width:100%" onclick="showAuth('otp')">Register & Verify</button>
+        </div>
+
+        <div id="form-login" class="hidden">
+            <h3>Member Login</h3>
+            <input type="tel" placeholder="Phone Number">
+            <input type="password" placeholder="Password">
+            <button class="btn-glow" style="width:100%" onclick="showAuth('otp')">Login with OTP</button>
+        </div>
+
+        <div id="form-otp" class="hidden">
+            <h3>Enter OTP</h3>
+            <p style="font-size: 11px; color: var(--accent);">Verification code sent to your mobile (Use 1234)</p>
+            <input type="text" id="otp-val" placeholder="0000" style="text-align: center; font-size: 24px; letter-spacing: 10px;">
+            <button class="btn-glow" style="width:100%" onclick="validateOTP()">VERIFY & ENTER</button>
         </div>
     </div>
 </div>
 
-<div class="modal-overlay" id="mainModal">
-    <div class="modal-content">
-        <div class="form-step active" id="portalStep">
-            <h2 style="margin-bottom: 20px;">Welcome</h2>
-            <button class="btn-main primary" style="width:100%; margin-bottom: 10px;" onclick="showView('register')">Register New Account</button>
-            <button class="btn-main secondary" style="width:100%" onclick="showView('login')">Login</button>
-        </div>
-
-        <div class="form-step" id="registerStep">
-            <h2>Account Opening</h2>
-            <div class="form-group"><label>Name</label><input type="text" id="regUser"></div>
-            <div class="form-group"><label>Mobile</label><input type="tel" id="regPhone"></div>
-            <div class="form-group"><label>PAN</label><input type="text" placeholder="ABCDE1234F"></div>
-            <button class="btn-main primary" style="width:100%" onclick="triggerOTP()">Continue to OTP</button>
-        </div>
-
-        <div class="form-step" id="loginStep">
-            <h2>Login</h2>
-            <div class="form-group"><label>Mobile</label><input type="tel"></div>
-            <button class="btn-main primary" style="width:100%" onclick="triggerOTP()">Get OTP</button>
-        </div>
-
-        <div class="form-step" id="otpStep">
-            <h2>Verify Identity</h2>
-            <p style="font-size:12px; margin-bottom:15px; color:var(--accent)">Enter 1234 to activate terminal</p>
-            <input type="text" id="otpIn" maxlength="4" style="width:100%; padding:15px; background:black; border:1px solid var(--border); color:white; text-align:center; letter-spacing:10px; font-size:20px;">
-            <button class="btn-main primary" style="width:100%; margin-top:20px;" onclick="verifyAndFinish()">UNLOCK TERMINAL</button>
-        </div>
-    </div>
-</div>
-
-<div class="ai-bot" id="geminiBot">
-    <div class="bot-header" onclick="toggleBot()">GEMINI AI HELPER</div>
-    <div class="bot-body" id="botBody">
-        <p>Market is currently bullish. I see high liquidity entering ZOMATO. Global sentiment favors a rally.</p>
-    </div>
-</div>
+<div id="chatbot" onclick="alert('AI Assistant: Market trend is currently sideways. Maintain stop loss at 25,600.')">🤖</div>
 
 <script>
-    // VIEW CONTROLS
-    function openPortal() { 
-        document.getElementById('features-page').style.display = 'none';
-        document.getElementById('landingUI').style.display = 'block';
-        document.getElementById('mainModal').style.display = 'flex'; 
+    // Navigation Logic
+    function showPage(pageId) {
+        document.querySelectorAll('[id^="page-"]').forEach(p => p.classList.add('hidden'));
+        document.getElementById('page-' + pageId).classList.remove('hidden');
     }
 
-    function showView(id) {
-        document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
-        document.getElementById(id + 'Step').classList.add('active');
-    }
-
-    function toggleView(view) {
-        document.getElementById('landingUI').style.display = view === 'home' ? 'block' : 'none';
-        document.getElementById('features-page').style.display = view === 'features' ? 'block' : 'none';
-    }
-
-    function triggerOTP() { showView('otp'); }
-
-    // THE INTEGRATION KEY
-    function verifyAndFinish() {
-        const pin = document.getElementById('otpIn').value;
-        if(pin === "1234") {
-            // 1. Hide everything related to landing/auth
-            document.getElementById('mainModal').style.display = 'none';
-            document.getElementById('landingUI').style.display = 'none';
-            document.getElementById('features-page').style.display = 'none';
-            
-            // 2. Show the Dashboard and Terminal UI
-            document.getElementById('dashboard').style.display = 'block';
-            document.getElementById('dashNav').style.display = 'block';
-            document.getElementById('geminiBot').style.display = 'block';
-            
-            // 3. Update Nav Status
-            document.getElementById('navStatus').innerHTML = '<span class="mono up" style="font-size:12px;">● QUANTUM_ACTIVE</span>';
-            
-            // 4. Start Charts
-            initChart();
-            alert("Terminal Decrypted. Welcome, Trader.");
-        } else {
-            alert("Invalid OTP. Use 1234");
-        }
-    }
-
-    // TERMINAL LOGIC
-    function setTab(t) {
-        document.querySelectorAll('.task-item').forEach(i => i.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById('tab-'+t).classList.add('active');
+    function showTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.getElementById('tab-' + tabId).classList.remove('hidden');
         event.currentTarget.classList.add('active');
     }
 
-    function initChart() {
-        const chart = LightweightCharts.createChart(document.getElementById('mainTradingChart'), {
-            layout: { background: { color: 'transparent' }, textColor: '#9ca3af' },
-            grid: { vertLines: { color: '#1f2937' }, horzLines: { color: '#1f2937' } },
-        });
-        const series = chart.addCandlestickSeries({ upColor: '#22c55e', downColor: '#ef4444' });
-        let data = []; let p = 180;
-        for(let i=0; i<100; i++) {
-            let o=p; let c=p+(Math.random()*10-5);
-            data.push({ time: 1704067200 + i*86400, open:o, high:Math.max(o,c)+2, low:Math.min(o,c)-2, close:c });
-            p=c;
-        }
-        series.setData(data);
+    // Auth Logic
+    function openAuth() { document.getElementById('authModal').style.display = 'flex'; }
+    
+    function showAuth(step) {
+        document.getElementById('auth-choice').classList.add('hidden');
+        document.getElementById('form-register').classList.add('hidden');
+        document.getElementById('form-login').classList.add('hidden');
+        document.getElementById('form-otp').classList.add('hidden');
+        document.getElementById('form-' + step).classList.remove('hidden');
     }
 
-    function toggleBot() { document.getElementById('botBody').classList.toggle('open'); }
+    function validateOTP() {
+        if(document.getElementById('otp-val').value === "1234") {
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('display-name').innerText = document.getElementById('in-name').value || "Trader";
+            showPage('terminal');
+            initChart();
+        } else { alert("Wrong OTP! Use 1234"); }
+    }
 
-    // LANDING CHART ANIMATION
-    const ctx = document.getElementById('chartbg').getContext('2d');
-    new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: Array(20).fill(''),
-            datasets: [{ data: Array(20).fill(0).map(() => Math.random() * 100), borderColor: '#22c55e', borderWidth: 2, fill: false }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, scales: { x: { display: false }, y: { display: false } }, plugins: { legend: { display: false } }, elements: { point: { radius: 0 } } }
-    });
+    function payPremium() {
+        const upi = prompt("Enter UPI ID for Payment of ₹4999:");
+        if(upi) alert("Redirecting to Bank... Payment for Premium Pack Successful!");
+    }
 
-    window.onclick = e => { if(e.target == document.getElementById('mainModal')) document.getElementById('mainModal').style.display='none'; }
+    // Chart Logic
+    function initChart() {
+        const ctx = document.getElementById('niftyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['9:15', '10:30', '11:45', '13:00', '14:15', '15:30'],
+                datasets: [{
+                    label: 'Nifty 50',
+                    data: [25600, 25750, 25720, 25880, 25867, 25910],
+                    borderColor: '#22c55e',
+                    tension: 0.4,
+                    fill: true,
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)'
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
+        });
+    }
+
+    window.onclick = e => { if(e.target == document.getElementById('authModal')) document.getElementById('authModal').style.display='none'; }
 </script>
 </body>
 </html>
